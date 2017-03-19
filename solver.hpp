@@ -68,6 +68,19 @@ template<uint32_t numrays> struct Lighthouse
             rays[i] = device.sensors_wp[i];
         }
     }
+
+    void rays_from_measurements(fp_type h_meas[numrays],
+                                fp_type v_meas[numrays])
+    {
+        for(uint32_t i = 0; i < numrays; i++)
+        {
+            fp_type h_ang = PI * (h_meas[i] - 0.5);
+            fp_type v_ang = PI * (v_meas[i] - 0.5);
+            fp_type c_v_ang = cos(v_ang), s_v_ang = sin(v_ang),
+                    c_h_ang = cos(h_ang), s_h_ang = sin(h_ang);
+            rays[i] = Vector3d(c_v_ang * c_h_ang, c_v_ang * s_h_ang, s_v_ang);
+        }
+    }
 };
 
 template<uint32_t N, template<uint32_t N> class D,
