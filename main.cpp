@@ -31,9 +31,9 @@ int main(void)
 
     for(int i = 0; i < 1000; i++)
     {
-        target_device.set_transform(base_transform *
-                                    Matrix4x4(Vector3d::k * 5 * sin(i/20.0)) *
-                                    Matrix4x4(Vector3d::one.rotationAroundAxis(i * 0.05)));
+        target_device.set_transform(
+            base_transform * Matrix4x4(Vector3d::k * 5 * sin(i/20.0)) *
+            Matrix4x4(Vector3d::one.rotationAroundAxis(i * 0.05)));
 
         Lighthouse4 lighthouse;
         lighthouse.rays_from_target(target_device);
@@ -54,7 +54,8 @@ int main(void)
         }
         cout << endl;
 
-        current_device.set_transform(Solver4::solve(current_device, lighthouse, 10));
+        current_device.set_transform(Solver4::solve(current_device, lighthouse,
+                                                    10).orthogonalize());
         current_device.update_world_positions();
     }
 }
