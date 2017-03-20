@@ -5,11 +5,15 @@ import os, sys
 
 source_dirs = [
         ".",
-        "./VectorLib"
+        "./VectorLib",
+        "driverlib",
+        "inc",
+        "drivers",
+        "drivers/SPI",
+        "utils"
         ]
 
-include_dirs = [
-        ]
+include_dirs = source_dirs
 
 libraries = [
         ]
@@ -40,32 +44,49 @@ with open("build.ninja", "w") as buildfile:
     n = Writer(buildfile)
 
     # Variable declarations
-    n.variable("cxxflags", "-g -Wall -std=c++14 " + get_includes() + " " + get_defines())
-    n.variable("cflags", "-g -Wall -std=c99 " + get_includes() + " " +  get_defines())
-    n.variable("lflags", " -lm -lstdc++ -lc")
+    n.variable("tc_prefix", "arm-none-eabi-")
+    n.variable("cxxflags", "-g -Wall -std=c++14 -fno-rtti -fno-exceptions " +
+                           "-ffunction-sections -fdata-sections -mthumb " +
+                           "-mcpu=cortex-m4 -mfloat-abi=hard " +
+                           "-mfpu=fpv4-sp-d16 -fsingle-precision-constant " +
+                           "-DF_CPU=80000000L -DPART_TM4C123GH6PM -nostdlib " +
+                           get_includes() + " " + get_defines())
+    n.variable("cflags", "-g -Wall -std=c99 -fdata-sections -mthumb " +
+                         "-mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 " +
+                         "-fsingle-precision-constant -DF_CPU=80000000L " +
+                         "-DPART_TM4C123GH6PM -nostdlib " + get_includes() +
+                         " " +  get_defines())
+    n.variable("lflags", "-g -Wl,--gc-sections --specs=nano.specs -T " +
+                         "tm4c123gh6pm.ld -Wl,--entry=ResetISR -mthumb " +
+                         "-mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 " +
+                         "-fsingle-precision-constant")
+    n.variable("lflags_libs", "-lm -lstdc++ -lc")
     n.variable("libs", get_libs())
 
     # Rule declarations
     n.rule("cxx",
-           command = "g++ $cxxflags -c $in -o $out")
+           command = "${tc_prefix}g++ $cxxflags -c $in -o $out")
 
     n.rule("cc",
-           command = "gcc $cflags -c $in -o $out")
+           command = "${tc_prefix}gcc $cflags -c $in -o $out")
 
     n.rule("cl",
-           command = "gcc -o $out $in $libs $lflags")
+           command = "${tc_prefix}gcc $lflags -o $out $in $libs $lflags_libs")
 
     n.rule("ocb",
-           command = "objcopy -O binary $in $out")
+           command = "${tc_prefix}objcopy -O binary $in $out")
 
     n.rule("cdb",
            command = "ninja -t compdb cc cxx > cc_preexp.json")
 
     n.rule("cdb_e",
-           command = "cat cc_preexp.json | ./expand_compdb.py > compile_commands.json")
+           command = "cat cc_preexp.json | ./expand_compdb.py > " +
+                     "compile_commands.json")
 
     n.rule("cscf",
-            command = "find " + " ".join(set(source_dirs + include_dirs)) + " -regex \".*\\(\\.c\\|\\.h\\|.cpp\\|.hpp\\)$$\" -and -not -type d > $out")
+            command = "find " + " ".join(set(source_dirs + include_dirs)) +
+                      " -regex \".*\\(\\.c\\|\\.h\\|.cpp\\|.hpp\\)$$\" -and " +
+                      "-not -type d > $out")
 
     n.rule("cscdb",
            command = "cscope -bq")
@@ -74,7 +95,8 @@ with open("build.ninja", "w") as buildfile:
     n.build("cc_preexp.json", "cdb")
     n.build("compile_commands.json", "cdb_e", "cc_preexp.json")
     n.build("cscope.files", "cscf")
-    n.build(["cscope.in.out", "cscope.po.out", "cscope.out"], "cscdb", "cscope.files")
+    n.build(["cscope.in.out", "cscope.po.out", "cscope.out"], "cscdb",
+            "cscope.files")
 
     objects = []
 
