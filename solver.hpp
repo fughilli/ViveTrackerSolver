@@ -4,9 +4,6 @@
 #include "VectorLib/Vector.h"
 #include "VectorLib/Matrix.h"
 
-#include <stdio.h>
-#include <iostream>
-
 #include <stdint.h>
 #include <float.h>
 #include <stdlib.h>
@@ -22,7 +19,7 @@ template<uint32_t numsensors> struct Device
 
     bool sensors_wp_valid;
 
-    Device(Vector3d _sensors[numsensors])
+    Device(const Vector3d _sensors[numsensors])
     {
         memcpy(sensors, _sensors, sizeof(sensors));
         sensors_wp_valid = false;
@@ -69,8 +66,8 @@ template<uint32_t numrays> struct Lighthouse
         }
     }
 
-    void rays_from_measurements(fp_type h_meas[numrays],
-                                fp_type v_meas[numrays])
+    void rays_from_measurements(const fp_type h_meas[numrays],
+                                const fp_type v_meas[numrays])
     {
         for(uint32_t i = 0; i < numrays; i++)
         {
@@ -83,8 +80,8 @@ template<uint32_t numrays> struct Lighthouse
     }
 };
 
-template<uint32_t N, template<uint32_t N> class D,
-         template<uint32_t N> class L> struct Solver
+template<uint32_t N, template<uint32_t N1> class D,
+         template<uint32_t N2> class L> struct Solver
 {
     static Vector3d ray_nearest(const Vector3d& o, const Vector3d& d,
                                 const Vector3d& p)
