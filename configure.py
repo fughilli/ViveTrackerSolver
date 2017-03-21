@@ -21,7 +21,8 @@ libraries = [
 
 defines = [
         "FCPU=80000000L",
-        "PART_TM4C123GH6PM"
+        "PART_TM4C123GH6PM",
+        "OVERRIDE_FPTYPE_FLOAT"
         ]
 
 def subst_ext(fname, ext):
