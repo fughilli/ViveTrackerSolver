@@ -45,13 +45,13 @@ with open("build.ninja", "w") as buildfile:
 
     # Variable declarations
     n.variable("tc_prefix", "arm-none-eabi-")
-    n.variable("cxxflags", "-g -Wall -std=c++14 -fno-rtti -fno-exceptions " +
+    n.variable("cxxflags", "-g -Wall -O1 -std=c++14 -fno-rtti -fno-exceptions " +
                            "-ffunction-sections -fdata-sections -mthumb " +
                            "-mcpu=cortex-m4 -mfloat-abi=hard " +
                            "-mfpu=fpv4-sp-d16 -fsingle-precision-constant " +
                            "-DF_CPU=80000000L -DPART_TM4C123GH6PM -nostdlib " +
                            get_includes() + " " + get_defines())
-    n.variable("cflags", "-g -Wall -std=c99 -fdata-sections -mthumb " +
+    n.variable("cflags", "-g -Wall -O1 -std=c99 -fdata-sections -mthumb " +
                          "-mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 " +
                          "-fsingle-precision-constant -DF_CPU=80000000L " +
                          "-DPART_TM4C123GH6PM -nostdlib " + get_includes() +
