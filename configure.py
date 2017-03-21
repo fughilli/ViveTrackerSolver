@@ -10,6 +10,7 @@ source_dirs = [
         "inc",
         "drivers",
         "drivers/SPI",
+        "adapters",
         "utils"
         ]
 
