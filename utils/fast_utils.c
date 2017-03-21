@@ -935,6 +935,7 @@ void fast_snprintf(char* buf, size_t bufsiz, const char* fmt, ...)
 				switch(fmt[fmtpos])
 				{
 				case 'd':
+                default:
 					base = 10;
 					break;
 				case 'x':
