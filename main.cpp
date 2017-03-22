@@ -61,6 +61,14 @@ typedef union
     uint8_t raw[8];
 } sensor_data_u;
 
+/*
+ * Define a PeriodicTimer to re-orthogonalize the transformation matrix every
+ * 1000 data frames. This will prevent accumulating error from crippling the
+ * solver.
+ */
+typedef EventUtils::PeriodicTimer<1000, EventUtils::NullEventAdapter>
+    OrthogonalizeTimer;
+
 int main(void)
 {
     SysCtlClockSet(
@@ -145,8 +153,15 @@ int main(void)
 
                 lighthouse.rays_from_measurements(h_meas, v_meas);
                 Matrix4x4 test_transform = Solver4::solve(current_device,
-                                                          lighthouse,
-                                                          10).orthogonalize();
+                                                          lighthouse, 10);
+
+                /*
+                 * Re-orthogonalize the transform if necessary.
+                 */
+                if (OrthogonalizeTimer::tick())
+                {
+                    test_transform = test_transform.orthogonalize();
+                }
 
                 float error = Solver4::get_error(current_device, lighthouse);
 
