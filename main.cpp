@@ -71,7 +71,7 @@ int main(void)
 
     Serial_puts(Serial_module_debug, "[DEBUG] Hello world!\r\n");
 
-    current_device.set_transform(Matrix4x4(Vector3d(0.1,0.1,0.1)));
+    current_device.set_transform(Matrix4x4(Vector3d::i * 10));
     current_device.update_world_positions();
 
     SPI_begin(3);
