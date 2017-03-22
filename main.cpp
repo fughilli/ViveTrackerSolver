@@ -35,12 +35,20 @@ Lighthouse4 lighthouse;
 typedef Pin::DigitalPin<SYSCTL_PERIPH_GPIOB, GPIO_PORTB_BASE, 2> data_ready;
 typedef Pin::DigitalPin<SYSCTL_PERIPH_GPIOB, GPIO_PORTB_BASE, 1> scan_dir;
 
+/*
+ * Define the data structure and stream used to send the transform matrix and
+ * ray set to the python script.
+ */
 typedef struct
 {
     Matrix4x4 transform;
     Vector3d rays[DEVICE_SENSOR_COUNT];
 } output_data_t;
 
+/*
+ * Encode the data in Base64 to overcome 7-th bit meddling on certain serial
+ * channels (e.g., Bluetooth serial modules like the HC-05/HC-06).
+ */
 static output_data_t output_data;
 typedef Base64::Base64StreamWriter<DebugSerialAdapter::DebugSerialWriter,
                                    Base64::Base64LookupMapper>
@@ -50,6 +58,9 @@ typedef StreamUtils::StaticStructSender<SerialBase64Writer, output_data_t,
                                         &output_data, sizeof(output_data_t)>
             TransformSender;
 
+/*
+ * Define the data structure received from the FPGA.
+ */
 typedef struct
 {
     uint16_t angles[4];
@@ -134,6 +145,11 @@ int main(void)
             {
                 which_to_fill[i] = sensor_data.data.angles[i]/26042.0;
 
+                /*
+                 * GROSS HACK WORKAROUND:
+                 * Ignore bad frames by discarding timer counts that are
+                 * out-of-range.
+                 */
                 if(which_to_fill[i] > 1)
                 {
                     if(which_scan)
@@ -151,7 +167,15 @@ int main(void)
             {
                 h_data = v_data = false;
 
+                /*
+                 * Compute the target rays from the captured data.
+                 */
                 lighthouse.rays_from_measurements(h_meas, v_meas);
+
+                /*
+                 * Solve for the device transform by performing 10 solver
+                 * iterations.
+                 */
                 Matrix4x4 test_transform = Solver4::solve(current_device,
                                                           lighthouse, 10);
 
@@ -163,6 +187,19 @@ int main(void)
                     test_transform = test_transform.orthogonalize();
                 }
 
+                /*
+                 * GROSS HACK WORKAROUND:
+                 * Occasionally, there will be a bad data frame from the FPGA.
+                 * This could be due to several reasons, and my suspicion falls
+                 * on the SPI module in the Verilog implementation (or, at
+                 * least, how it's connected to the rest of the design--
+                 * something is probably causing a setup/hold violation). In any
+                 * case, these bad data frames will possibly cause the solver
+                 * to report that the device has moved behind the lighthouse,
+                 * or cause the error to spike. By detecting these conditions,
+                 * we can discard solutions that don't make sense, and hopefully
+                 * avoid acting upon the bad frames.
+                 */
                 float error = Solver4::get_error(current_device, lighthouse);
 
                 accum_error = accum_error * 0.9 + error * 0.1;
@@ -175,11 +212,23 @@ int main(void)
 
                 current_device.update_world_positions();
 
+                /*
+                 * Copy the data into the send structure.
+                 */
                 output_data.transform = current_device.transform;
                 memcpy(output_data.rays, lighthouse.rays, sizeof(lighthouse.rays));
+
+                /*
+                 * Send the data.
+                 */
                 TransformSender::send();
                 Serial_puts(Serial_module_debug, "\r\n");
 
+                /*
+                 * Check if the user has sent us an 'f', for "flip", meaning
+                 * that we got the phase lock off by one timing window, and the
+                 * horizontal data is actually the vertical data and vice-versa.
+                 */
                 if(Serial_avail(Serial_module_debug))
                     if(Serial_getc(Serial_module_debug) == 'f')
                         flipped = !flipped;
